@@ -174,4 +174,5 @@ python-dotenv
 
 ## 🧾 License
 
-MIT
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)  
+Released under the [MIT License](LICENSE) © 2025 Atharv Yadav
