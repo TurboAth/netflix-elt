@@ -1,162 +1,299 @@
+/* 1. Global Settings & Variables */
 :root {
-    --bg-color: #1a1a1a;
-    --card-bg: #2a2a2a;
-    --text-color: #e0e0e0;
-    --text-muted: #999;
-    --primary-color: #007bff;
-    --code-bg: #202020;
-    --border-color: #444;
-    --header-font: 'Arial', sans-serif;
-    --body-font: 'Georgia', serif;
+    --bg-color: #141414;
+    --card-color: rgba(30, 30, 30, 0.7);
+    --text-color: #e5e5e5;
+    --text-muted: #808080;
+    --border-color: #303030;
+    --accent-color: #E50914; /* Netflix Red */
+    --success-color: #00b300;
+    --sidebar-width: 240px;
 }
-body {
-    font-family: var(--body-font);
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    line-height: 1.7;
+
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
+
+html {
+    scroll-behavior: smooth;
 }
-header {
-    text-align: center;
-    border-bottom: 2px solid var(--border-color);
-    padding-bottom: 20px;
-    margin-bottom: 40px;
-}
-header h1 {
-    font-family: var(--header-font);
-    font-weight: 600;
-    font-size: 2.5em;
-    margin: 0;
-    color: #fff;
-}
-header p {
-    font-size: 1.2em;
-    color: var(--primary-color);
-}
-nav {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 40px;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    border: 1px solid var(--border-color);
-}
-nav a {
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
     color: var(--text-color);
-    text-decoration: none;
-    padding: 10px 20px;
-    font-family: var(--header-font);
+    line-height: 1.7;
+    background-image: linear-gradient(35deg, #101010 0%, #181818 50%, #101010 100%);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 2. Layout: Sidebar + Main Content */
+
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 25px 20px;
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    margin-left: var(--sidebar-width);
+    padding: 30px 40px;
+}
+
+/* 3. Sidebar Elements */
+
+.sidebar header {
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar header h1 {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.sidebar header p {
+    font-size: 1em;
+    color: var(--text-muted);
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-grow: 1;
+}
+
+.nav-menu .nav-link {
+    font-size: 0.95em;
     font-weight: 500;
-    border-radius: 5px;
-    transition: background-color 0.3s;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
 }
-nav a:hover {
-    background-color: var(--primary-color);
+
+.nav-menu .nav-link:hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.nav-menu .nav-link.active {
+    background-color: var(--accent-color);
     color: #fff;
+    font-weight: 600;
 }
+
+.sidebar footer {
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+/* 4. Main Content Elements */
+
 .card {
-    background-color: var(--card-bg);
+    background-color: var(--card-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 30px;
     margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    padding: 30px;
+    backdrop-filter: blur(5px);
+    scroll-margin-top: 30px; /* Offset for active nav */
 }
+
 h2 {
-    font-family: var(--header-font);
     font-size: 1.8em;
+    font-weight: 600;
     color: #fff;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 10px;
-    margin-top: 0;
-}
-h3 {
-    font-family: var(--header-font);
-    font-size: 1.4em;
-    color: var(--primary-color);
-    margin-top: 30px;
-}
-ul {
-    padding-left: 20px;
-}
-li {
-    margin-bottom: 10px;
-}
-pre {
-    background-color: var(--code-bg);
-    border: 1px solid var(--border-color);
-    padding: 15px;
-    border-radius: 5px;
-    overflow-x: auto;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.95em;
-}
-code {
-    font-family: 'Courier New', Courier, monospace;
-}
-img {
-    max-width: 100%;
-    border-radius: 5px;
-    border: 1px solid var(--border-color);
-    margin-top: 15px;
-}
-.license-img {
-    border: none;
-    width: 90px;
-    margin: 0;
-}
-footer {
-    text-align: center;
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-    color: var(--text-muted);
-    font-family: var(--header-font);
+    margin-bottom: 20px;
 }
 
-/* Tab Styles */
-.tab-container {
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    background-color: var(--code-bg);
+h3 {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-top: 25px;
+    margin-bottom: 10px;
 }
+
+p, li, ol {
+    margin-bottom: 15px;
+    font-size: 1.05em;
+}
+
+ul, ol {
+    padding-left: 25px;
+}
+
+a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+img {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin-top: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* 5. Code Block & Copy Button */
+
+.code-block-wrapper {
+    position: relative;
+    margin-top: 15px;
+}
+
+.code-block-wrapper pre {
+    background-color: #161616;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+    padding-top: 20px; /* Default padding */
+}
+
+.copy-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(50, 50, 50, 0.8);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.copy-button:hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+    opacity: 1;
+}
+
+.copy-button svg {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+.copy-button.copied {
+    background-color: var(--success-color);
+    color: #fff;
+    opacity: 1;
+}
+
+.copy-button .copied-icon {
+    display: none;
+}
+
+.copy-button.copied .copied-icon {
+    display: inline-block;
+}
+
+.copy-button.copied .copy-icon {
+    display: none;
+}
+
+
+/* 6. Tab Component */
+
 .tab-buttons {
     display: flex;
-    background-color: var(--card-bg);
     border-bottom: 1px solid var(--border-color);
 }
+
 .tab-button {
     padding: 10px 15px;
     cursor: pointer;
     border: none;
     background-color: transparent;
     color: var(--text-muted);
-    font-family: var(--header-font);
-    font-size: 1em;
-    border-right: 1px solid var(--border-color);
+    font-family: inherit;
+    font-size: 0.95em;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
 }
+
 .tab-button.active {
-    background-color: var(--code-bg);
     color: var(--text-color);
-    border-bottom: 1px solid var(--code-bg);
+    border-bottom-color: var(--accent-color);
 }
+
 .tab-content {
     display: none;
-    padding: 0;
+    padding-top: 1px; /* Fixes layout shift */
 }
+
 .tab-content.active {
     display: block;
 }
-.tab-content pre {
-    border: none;
-    margin: 0;
-    border-radius: 0 0 5px 5px;
+
+/* Remove margin from code blocks inside tabs */
+.tab-content .code-block-wrapper {
+    margin-top: 0;
+}
+
+.tab-content .code-block-wrapper pre {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-top-color: transparent;
+}
+
+
+/* 7. Responsive (Mobile) */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .sidebar header {
+        text-align: center;
+    }
+    
+    .nav-menu {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    .content {
+        margin-left: 0;
+        padding: 20px;
+    }
+    
+    .card {
+        padding: 20px;
+    }
 }
