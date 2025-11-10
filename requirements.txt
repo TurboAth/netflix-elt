@@ -1,6 +1,0 @@
-apache-airflow
-apache-airflow-providers-postgres
-pandas
-psycopg2-binary
-kaggle
-python-dotenv
