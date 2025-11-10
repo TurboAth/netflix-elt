@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix ELT Pipeline Project</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Netflix ELT Pipeline</h1>
+            <p>with Airflow + PostgreSQL + Kaggle</p>
+        </header>
+
+        <nav>
+            <a href="#overview">Overview</a>
+            <a href="#setup">Setup Guide</a>
+            <a href="#pipeline">Pipeline Code</a>
+            <a href="#scripts">Helper Scripts</a>
+            <a href="#license">License</a>
+        </nav>
+
+        <section id="overview" class="card">
+            <h2>🧱 Project Overview</h2>
+            <p>A clean, reproducible ELT pipeline that:</p>
+            <ul>
+                <li><strong>Extracts</strong> the public <em>Netflix Movies and TV Shows</em> dataset from Kaggle</li>
+                <li><strong>Loads</strong> it into PostgreSQL with idempotent, fast inserts</li>
+                <li><strong>Transforms</strong> into a clean table for analysis</li>
+                <li><strong>Runs</strong> on a daily schedule with Airflow</li>
+                <li><strong>Ships</strong> with logs, scripts and a GitHub‑ready structure</li>
+            </ul>
+
+            <h3>Project Structure</h3>
+            <pre>
+airflow/
+ ├── dags/
+ │   └── netflix_pipeline_dag.py
+ ├── data/
+ │   └── netflix_titles.csv
+ ├── scripts/
+ │   ├── setup_airflow.sh
+ │   └── env.example
+ ├── requirements.txt
+ └── README.md
+            </pre>
+            <p><em>You can place this folder anywhere (e.g., <code>~/airflow_home</code>). Make sure your Airflow <code>dags_folder</code> points to <code>./dags</code> or add this path to Airflow config.</em></p>
+        </section>
+
+        <section id="setup" class="card">
+            <h2>⚙️ Step-by-Step Setup Guide</h2>
+
+            <h3>Step 1: Environment Setup (Local)</h3>
+            <pre><code class="language-bash">python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+</code></pre>
+            <img src="assets/1.png" alt="Terminal screenshot of venv setup">
+            <pre><code class="language-bash"># Airflow requires constraints; use the current stable (example below, update if needed)
+AIRFLOW_VERSION=2.9.3
+PYTHON_VERSION=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+pip install "apache-airflow==${AIRFLOW_VERSION}" \
+  --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+
+# Providers
+pip install apache-airflow-providers-postgres pandas kaggle psycopg2-binary python-dotenv
+</code></pre>
+            <img src="assets/2.png" alt="Terminal screenshot of airflow install">
+
+            <h3>Option B — Docker for PostgreSQL only</h3>
+            <p>If you don't have Postgres locally, run a temp container:</p>
+            <pre><code class="language-bash">docker run -d --name pg-netflix -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=airflow_db -p 5432:5432 postgres:16
+</code></pre>
+
+            <h3>🔑 Step 2: Kaggle API</h3>
+            <ol>
+                <li>On Kaggle: <strong>Account → Create New API Token</strong> (downloads <code>kaggle.json</code>)</li>
+                <li>Place it at <code>~/.kaggle/kaggle.json</code></li>
+                <li>Restrict permissions:</li>
+            </ol>
+            <pre><code class="language-bash">chmod 600 ~/.kaggle/kaggle.json
+</code></pre>
+            <img src="assets/3.png" alt="Terminal screenshot of Kaggle API setup">
+
+            <h3>🗄️ Step 3: PostgreSQL Connection in Airflow</h3>
+            <p>Create an Airflow connection named <strong><code>pg_netflix</code></strong>:</p>
+            <ul>
+                <li><strong>Conn Id:</strong> <code>pg_netflix</code></li>
+                <li><strong>Conn Type:</strong> <code>Postgres</code></li>
+                <li><strong>Host:</strong> <code>localhost</code></li>
+                <li><strong>Schema:</strong> <code>airflow_db</code></li>
+                <li><strong>Login:</strong> <code>postgres</code></li>
+                <li><strong>Password:</strong> <code>postgres</code> (or your own)</li>
+                <li><strong>Port:</strong> <code>5432</code></li>
+            </ul>
+            <p><strong>CLI alternative:</strong></p>
+            <pre><code class="language-bash">airflow connections add pg_netflix \
+  --conn-uri 'postgresql+psycopg2://postgres:postgres@localhost:5432/airflow_db'
+</code></pre>
+            <img src="assets/4.png" alt="Terminal screenshot of Airflow connection add">
+
+            <h3>🪄 Step 4: Initialize Airflow and User</h3>
+            <pre><code class="language-bash">export AIRFLOW_HOME=$(pwd)
+airflow db init
+
+airflow users create \
+  --username admin --password admin \
+  --firstname Turbo --lastname Ath \
+  --role Admin --email turboath@example.com
+</code></pre>
+            <img src="assets/5.png" alt="Terminal screenshot of airflow db init">
+            <img src="assets/6.png" alt="Terminal screenshot of airflow users create">
+
+            <h3>🧠 Step 5: Enable and Run the Pipeline</h3>
+            <p>Start the services (two terminals):</p>
+            <pre><code class="language-bash"># Terminal 1
+airflow webserver -p 8080
+</code></pre>
+            <img src="assets/7.png" alt="Terminal screenshot of airflow webserver">
+            <pre><code class="language-bash"># Terminal 2
+airflow scheduler
+</code></pre>
+            <img src="assets/8.png" alt="Terminal screenshot of airflow scheduler">
+            <p>Open: <a href="http://localhost:8080">http://localhost:8080</a> → trigger <strong><code>netflix_elt_pipeline</code></strong>.</p>
+            <img src="assets/9.png" alt="Airflow login screen">
+            <img src="assets/10.png" alt="Airflow DAGs list">
+            
+
+            <h3>🧪 Step 6: Validate Data</h3>
+            <p>Connect to Postgres and run:</p>
+            <pre><code class="language-sql">SELECT COUNT(*) FROM netflix;
+SELECT COUNT(*) FROM netflix_clean;
+
+SELECT country, COUNT(*) AS c
+FROM netflix_clean
+GROUP BY country
+ORDER BY c DESC
+LIMIT 10;
+</code></pre>
+        </section>
+
+        <section id="pipeline" class="card">
+            <h2>📦 Pipeline Code & Dependencies</h2>
+            
+            <div class="tab-container" data-tab-group="pipeline">
+                <div class="tab-buttons">
+                    <button class="tab-button active" data-tab="dag">dags/netflix_pipeline_dag.py</button>
+                    <button class="tab-button" data-tab="reqs">requirements.txt</button>
+                </div>
+                <div class="tab-content active" data-tab="dag">
+<pre><code class="language-python">from __future__ import annotations
+
+import os
+import io
+import logging
+from datetime import datetime, timedelta
+
+import pandas as pd
+from airflow.decorators import dag, task
+from airflow.exceptions import AirflowFailException
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+
+# ---------- Config ----------
+DATA_DIR = os.getenv("DATA_DIR", "/tmp/netflix_data")
+KAGGLE_DATASET = "shivamb/netflix-shows"  # public dataset
+RAW_CSV = os.path.join(DATA_DIR, "netflix_titles.csv")
+PG_CONN_ID = os.getenv("PG_CONN_ID", "pg_netflix")
+
+
+default_args = {
+    "owner": "atharv",
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+}
+
+
+@dag(
+    dag_id="netflix_elt_pipeline",
+    default_args=default_args,
+    start_date=datetime(2025, 11, 7),
+    schedule_interval="@daily",
+    catchup=False,
+    max_active_runs=1,
+    tags=["netflix", "elt", "kaggle", "postgres"],
+)
+def netflix_elt_pipeline():
+    log = logging.getLogger("airflow")
+
+    @task
+    def extract() -> str:
+        """
+        Download & unzip the dataset from Kaggle CLI into DATA_DIR.
+        """
+        os.makedirs(DATA_DIR, exist_ok=True)
+        log.info("Starting extract: dataset=%s, dest=%s", KAGGLE_DATASET, DATA_DIR)
+
+        # Use kaggle CLI; it reads ~/.kaggle/kaggle.json
+        exit_code = os.system(
+            f'kaggle datasets download -d {KAGGLE_DATASET} -p "{DATA_DIR}" --unzip'
+        )
+        if exit_code != 0:
+            raise AirflowFailException("Kaggle download failed. Check your API key and network.")
+
+        if not os.path.exists(RAW_CSV):
+            # In case the file was named differently, try to locate it
+            candidates = [p for p in os.listdir(DATA_DIR) if p.endswith(".csv")]
+            if candidates:
+                src = os.path.join(DATA_DIR, candidates[0])
+                os.rename(src, RAW_CSV)
+
+        if not os.path.exists(RAW_CSV):
+            raise AirflowFailException("CSV not found after download/unzip.")
+
+        # Quick sanity read (no memory blowup)
+        head = pd.read_csv(RAW_CSV, nrows=5)
+        log.info("Extract success. Sample rows:\n%s", head.to_string(index=False))
+
+        return RAW_CSV
+
+    @task
+    def load(csv_path: str) -> int:
+        """
+        Create target table and load rows using a staging table + fast COPY,
+        then upsert into the target table on (show_id).
+        Returns number of rows staged.
+        """
+        log.info("Starting load from %s", csv_path)
+        df = pd.read_csv(csv_path)
+
+        # Normalize column names to expected schema
+        expected_cols = [
+            "show_id", "type", "title", "director", "cast", "country",
+            "date_added", "release_year", "rating", "duration",
+            "listed_in", "description"
+        ]
+        missing = [c for c in expected_cols if c not in df.columns]
+        if missing:
+            raise AirflowFailException(f"Missing columns in CSV: {missing}")
+
+        # Create staging-friendly dataframe (ensure strings, strip)
+        for col in df.columns:
+            if df[col].dtype == "object":
+                df[col] = df[col].fillna("").astype(str).str.strip()
+
+        # Connect
+        hook = PostgresHook(postgres_conn_id=PG_CONN_ID)
+        engine = hook.get_sqlalchemy_engine()
+
+        create_target_sql = """
+        CREATE TABLE IF NOT EXISTS netflix (
+            show_id TEXT PRIMARY KEY,
+            type TEXT,
+            title TEXT,
+            director TEXT,
+            cast TEXT,
+            country TEXT,
+            date_added TEXT,
+            release_year INT,
+            rating TEXT,
+            duration TEXT,
+            listed_in TEXT,
+            description TEXT
+        );
+        """
+        create_staging_sql = """
+        CREATE TEMP TABLE IF NOT EXISTS netflix_staging (
+            show_id TEXT,
+            type TEXT,
+            title TEXT,
+            director TEXT,
+            cast TEXT,
+            country TEXT,
+            date_added TEXT,
+            release_year INT,
+            rating TEXT,
+            duration TEXT,
+            listed_in TEXT,
+            description TEXT
+        ) ON COMMIT DROP;
+        """
+
+        with engine.begin() as conn:
+            conn.execute(text(create_target_sql))  # type: ignore
+            conn.execute(text(create_staging_sql))  # type: ignore
+
+        # COPY into staging
+        from sqlalchemy import text
+        csv_buf = io.StringIO()
+        # Ensure consistent ordering of columns
+        df.to_csv(csv_buf, index=False, header=False, columns=expected_cols)
+        csv_buf.seek(0)
+
+        # Use raw connection for copy_expert
+        pg_conn = hook.get_conn()
+        try:
+            with pg_conn, pg_conn.cursor() as cur:
+                cur.copy_expert(
+                    f"COPY netflix_staging ({', '.join(expected_cols)}) FROM STDIN WITH CSV",
+                    csv_buf,
+                )
+        finally:
+            pg_conn.close()
+
+        staged_rows = len(df)
+        log.info("Staged %d rows.", staged_rows)
+
+        # Upsert into target
+        upsert_sql = """
+        INSERT INTO netflix AS t (
+            show_id, type, title, director, cast, country,
+            date_added, release_year, rating, duration, listed_in, description
+        )
+        SELECT
+            show_id, type, title, director, cast, country,
+            date_added, release_year, rating, duration, listed_in, description
+        FROM netflix_staging
+        ON CONFLICT (show_id) DO UPDATE SET
+            type = EXCLUDED.type,
+            title = EXCLUDED.title,
+            director = EXCLUDED.director,
+            cast = EXCLUDED.cast,
+            country = EXCLUDED.country,
+            date_added = EXCLUDED.date_added,
+            release_year = EXcluded.release_year,
+            rating = EXCLUDED.rating,
+            duration = EXCLUDED.duration,
+            listed_in = EXCLUDED.listed_in,
+            description = EXCLUDED.description;
+        """
+
+        with engine.begin() as conn:
+            conn.execute(text(upsert_sql))
+
+        log.info("Load completed (upserted).")
+        return staged_rows
+
+    @task
+    def transform() -> int:
+        """
+        Create/refresh a clean table with basic quality filters.
+        Returns number of rows in clean table.
+        """
+        hook = PostgresHook(postgres_conn_id=PG_CONN_ID)
+        from sqlalchemy import text
+        with hook.get_sqlalchemy_engine().begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS netflix_clean AS
+                SELECT * FROM netflix WHERE 1=0;
+            """))
+            conn.execute(text("TRUNCATE TABLE netflix_clean;"))
+            conn.execute(text("""
+                INSERT INTO netflix_clean
+                SELECT DISTINCT ON (show_id) *
+                FROM netflix
+                WHERE COALESCE(country, '') <> '';
+            """))
+            result = conn.execute(text("SELECT COUNT(*) FROM netflix_clean;"))
+            (cnt,) = list(result)[0]
+        logging.getLogger("airflow").info("Transform produced %d rows.", cnt)
+        return int(cnt)
+
+    # Orchestration
+    csv_path = extract()
+    _ = load(csv_path)
+    _ = transform()
+
+
+dag = netflix_elt_pipeline()
+</code></pre>
+                </div>
+                <div class="tab-content" data-tab="reqs">
+<pre><code>apache-airflow
+apache-airflow-providers-postgres
+pandas
+psycopg2-binary
+kaggle
+python-dotenv
+</code></pre>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="scripts" class="card">
+            <h2>🧰 Helper Scripts</h2>
+
+            <div class="tab-container" data-tab-group="scripts">
+                <div class="tab-buttons">
+                    <button class="tab-button active" data-tab="setup-sh">scripts/setup_airflow.sh</button>
+                    <button class="tab-button" data-tab="env">scripts/env.example</button>
+                </div>
+                <div class="tab-content active" data-tab="setup-sh">
+<pre><code class="language-bash">#!/usr/bin/env bash
+set -euo pipefail
+
+AIRFLOW_VERSION="${AIRFLOW_VERSION:-2.9.3}"
+PYVER="$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')"
+
+echo "[*] Upgrading pip..."
+python -m pip install --upgrade pip
+
+echo "[*] Installing Airflow with constraints ${AIRFLOW_VERSION} (Python ${PYVER})..."
+pip install "apache-airflow==${AIRFLOW_VERSION}" \
+  --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYVER}.txt"
+
+echo "[*] Installing providers and libs..."
+pip install apache-airflow-providers-postgres pandas kaggle psycopg2-binary python-dotenv
+
+echo "[*] Initializing Airflow DB..."
+export AIRFLOW_HOME="${AIRFLOW_HOME:-$(pwd)}"
+airflow db init
+
+echo "[*] Creating admin user..."
+airflow users create \
+  --username admin --password admin \
+  --firstname Atharv --lastname Jagtap \
+  --role Admin --email admin@example.com
+
+echo "[*] Creating Postgres connection 'pg_netflix'..."
+airflow connections add pg_netflix \
+  --conn-uri 'postgresql+psycopg2://postgres:postgres@localhost:5432/airflow_db'
+
+echo "[*] Done. Now run 'airflow webserver -p 8080' and 'airflow scheduler'."
+</code></pre>
+                </div>
+                <div class="tab-content" data-tab="env">
+<pre><code class="language-bash"># Copy to .env and edit values as needed
+# Airflow will load env vars at runtime if exported in your shell
+PG_HOST=localhost
+PG_PORT=5432
+PG_DB=airflow_db
+PG_USER=postgres
+PG_PASSWORD=postgres
+
+# Where to download/unzip Kaggle dataset
+DATA_DIR=/tmp/netflix_data
+</code></pre>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="license" class="card">
+            <h2>🧾 License</h2>
+            <p><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" class="license-img"></p>
+            <p>Released under the MIT License © 2025 Atharv Yadav</p>
+            <pre><code>MIT License
+
+Copyright (c) 2025 TurboAth
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</code></pre>
+        </section>
+
+        <footer>
+            Copyright (c) 2025 TurboAth
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
